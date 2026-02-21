@@ -195,7 +195,7 @@ const Intervention = () => {
         }, 1000)
 
         return () => clearInterval(timer)
-    }, [timeLeft])
+    }, [timeLeft, isIntentPhase])
 
     const handleContinue = () => {
         // Update stats in background
