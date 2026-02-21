@@ -26,6 +26,12 @@ interface AppStats {
     totalCanceled: number;
 }
 
+interface DailyRecord {
+    attempts: number;
+    pauses: number;
+    continues: number;
+}
+
 interface AppSettings {
     intentEnabled: boolean;
     scalingEnabled: boolean;
@@ -155,6 +161,22 @@ async function handleRecordVisit(domain: string) {
     });
     await chrome.storage.sync.set({ blockedSites: updatedSites });
 
+    // Update Daily Snapshot
+    const today = new Date().toISOString().split('T')[0];
+    const statsData = await chrome.storage.sync.get(['dailyStats']) as { dailyStats?: Record<string, DailyRecord> };
+    const dailyStats = statsData.dailyStats || {};
+    if (!dailyStats[today]) {
+        dailyStats[today] = { attempts: 0, pauses: 0, continues: 0 };
+    }
+    dailyStats[today].attempts += 1;
+
+    // Prune to last 30 days
+    const dates = Object.keys(dailyStats).sort();
+    if (dates.length > 30) {
+        delete dailyStats[dates[0]];
+    }
+    await chrome.storage.sync.set({ dailyStats });
+
     // record the load timestamp (we'll update type later on continue/cancel)
     const newRecord: VisitRecord = { timestamp: now, type: 'cancel' }; // Default to cancel until proven otherwise
     history[domain] = [...domainHistory, newRecord];
@@ -195,6 +217,21 @@ async function handleUpdateStats(action: 'continue' | 'cancel', duration: number
         });
         await chrome.storage.sync.set({ blockedSites: updatedSites });
     }
+
+    // Update Daily Snapshot outcomes
+    const today = new Date().toISOString().split('T')[0];
+    const dailyData = await chrome.storage.sync.get(['dailyStats']) as { dailyStats?: Record<string, DailyRecord> };
+    const dailyStats = dailyData.dailyStats || {};
+    if (!dailyStats[today]) {
+        dailyStats[today] = { attempts: 0, pauses: 0, continues: 0 };
+    }
+
+    if (action === 'cancel') {
+        dailyStats[today].pauses += 1;
+    } else {
+        dailyStats[today].continues += 1;
+    }
+    await chrome.storage.sync.set({ dailyStats });
 
     await chrome.storage.sync.set({ stats });
     return { success: true, stats };

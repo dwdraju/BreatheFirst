@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Shield, Settings, Trash2, Plus, Info, CheckCircle, Quote, Sparkles, Palette, Image as ImageIcon, Sliders, Clock, Download, Upload, BarChart3 } from 'lucide-react'
+import { Shield, Settings, Trash2, Plus, Info, CheckCircle, Quote, Sparkles, Palette, Image as ImageIcon, Sliders, Clock, Download, Upload, BarChart3, TrendingUp, Target, Activity } from 'lucide-react'
+import {
+    BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+    XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts'
 import './options-zen.css'
 
 interface BlockedSite {
@@ -19,9 +23,16 @@ interface UserQuote {
     id: number;
 }
 
+interface DailyRecord {
+    attempts: number;
+    pauses: number;
+    continues: number;
+}
+
 const Options = () => {
     const [activeTab, setActiveTab] = useState<'blocking' | 'appearance' | 'quotes' | 'insights' | 'mindfulness'>('blocking')
     const [blockedSites, setBlockedSites] = useState<BlockedSite[]>([])
+    const [dailyStats, setDailyStats] = useState<Record<string, DailyRecord>>({})
     const [newDomain, setNewDomain] = useState('')
     const [newDuration, setNewDuration] = useState(5)
     const [customText, setCustomText] = useState('')
@@ -56,7 +67,7 @@ const Options = () => {
             'blockedSites', 'customText', 'quotesEnabled',
             'manualQuotes', 'apiQuotesEnabled',
             'themeColor', 'bgMode', 'bgImage', 'blurIntensity',
-            'settings', 'stats'
+            'settings', 'stats', 'dailyStats'
         ], (data) => {
             const storageData = data as {
                 blockedSites?: BlockedSite[];
@@ -85,6 +96,7 @@ const Options = () => {
             const rawData = data as any
             if (rawData.settings) setSettings(rawData.settings)
             if (rawData.stats) setStats(rawData.stats)
+            if (rawData.dailyStats) setDailyStats(rawData.dailyStats)
         })
     }, [])
 
@@ -765,23 +777,126 @@ const Options = () => {
                         >
                             <header className="content-header">
                                 <h1>Insights & Impact</h1>
-                                <p>Visualize the time you've reclaimed and your mindful progress.</p>
+                                <p>Visualize your progress and understand your browsing habits.</p>
                             </header>
 
-                            <div className="card-zen" style={{ marginBottom: '2rem' }}>
-                                <div className="section-header-zen">
-                                    <Clock size={20} style={{ color: themeColor }} />
-                                    <h3>Overall Stats</h3>
+                            {/* Summary Cards */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                                <div className="card-zen" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                                    <div style={{ padding: '1rem', background: `${themeColor}15`, borderRadius: '1rem', color: themeColor }}>
+                                        <Activity size={24} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.totalCanceled}</div>
+                                        <div className="help-text" style={{ fontSize: '0.8rem' }}>Total Pauses</div>
+                                    </div>
                                 </div>
-                                <div className="stats-dashboard" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
-                                    <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '1.5rem', textAlign: 'center' }}>
-                                        <div style={{ fontSize: '2rem', fontWeight: 600, color: themeColor }}>{Math.floor(stats.totalTimeSaved / 60)}m</div>
-                                        <div className="help-text">Time Reclaimed</div>
+                                <div className="card-zen" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                                    <div style={{ padding: '1rem', background: `${themeColor}15`, borderRadius: '1rem', color: themeColor }}>
+                                        <Clock size={24} />
                                     </div>
-                                    <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '1.5rem', textAlign: 'center' }}>
-                                        <div style={{ fontSize: '2rem', fontWeight: 600, color: themeColor }}>{stats.totalCanceled}</div>
-                                        <div className="help-text">Mindful Pauses</div>
+                                    <div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{Math.round(stats.totalTimeSaved / 60)}m</div>
+                                        <div className="help-text" style={{ fontSize: '0.8rem' }}>Time Saved</div>
                                     </div>
+                                </div>
+                                <div className="card-zen" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                                    <div style={{ padding: '1rem', background: `${themeColor}15`, borderRadius: '1rem', color: themeColor }}>
+                                        <Target size={24} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                                            {(() => {
+                                                const totalDropped = blockedSites.reduce((acc, s) => acc + (s.droppedCount || s.savedCount || 0), 0);
+                                                const totalContinued = blockedSites.reduce((acc, s) => acc + (s.continuedCount || 0), 0);
+                                                const total = totalDropped + totalContinued;
+                                                return total > 0 ? `${Math.round((totalDropped / total) * 100)}%` : '--';
+                                            })()}
+                                        </div>
+                                        <div className="help-text" style={{ fontSize: '0.8rem' }}>Success Rate</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                                {/* Success Trend Line Chart */}
+                                <div className="card-zen" style={{ padding: '1.5rem' }}>
+                                    <div className="section-header-zen">
+                                        <TrendingUp size={18} style={{ color: themeColor }} />
+                                        <h3 style={{ fontSize: '1rem' }}>Daily Trend</h3>
+                                    </div>
+                                    <div style={{ height: 200, width: '100%', marginTop: '1rem' }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart data={Object.entries(dailyStats).map(([date, data]) => ({ date: date.split('-').slice(1).join('/'), ...data })).sort((a, b) => a.date.localeCompare(b.date))}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                                <XAxis dataKey="date" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                                                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                                                <Tooltip
+                                                    contentStyle={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                                                    itemStyle={{ fontSize: '10px' }}
+                                                />
+                                                <Line type="monotone" dataKey="pauses" stroke={themeColor} strokeWidth={2} dot={{ fill: themeColor, r: 2 }} activeDot={{ r: 4 }} name="Pauses" />
+                                                <Line type="monotone" dataKey="attempts" stroke="rgba(255,255,255,0.2)" strokeWidth={1} dot={false} name="Attempts" />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+
+                                {/* Outcome Pie Chart */}
+                                <div className="card-zen" style={{ padding: '1.5rem' }}>
+                                    <div className="section-header-zen">
+                                        <BarChart3 size={18} style={{ color: themeColor }} />
+                                        <h3 style={{ fontSize: '1rem' }}>Overall Ratio</h3>
+                                    </div>
+                                    <div style={{ height: 200, width: '100%', marginTop: '1rem' }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={[
+                                                        { name: 'Pauses', value: blockedSites.reduce((acc, s) => acc + (s.droppedCount || s.savedCount || 0), 0) },
+                                                        { name: 'Visits', value: blockedSites.reduce((acc, s) => acc + (s.continuedCount || 0), 0) }
+                                                    ]}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={45}
+                                                    outerRadius={65}
+                                                    paddingAngle={5}
+                                                    dataKey="value"
+                                                >
+                                                    <Cell fill={themeColor} />
+                                                    <Cell fill="rgba(255,255,255,0.1)" />
+                                                </Pie>
+                                                <Tooltip
+                                                    contentStyle={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                                                    itemStyle={{ fontSize: '10px' }}
+                                                />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Site Comparison Bar Chart */}
+                            <div className="card-zen" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+                                <div className="section-header-zen">
+                                    <Shield size={18} style={{ color: themeColor }} />
+                                    <h3 style={{ fontSize: '1rem' }}>Site Comparison (Top 5)</h3>
+                                </div>
+                                <div style={{ height: 220, width: '100%', marginTop: '1rem' }}>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={blockedSites.map(s => ({ name: s.domain, pauses: s.droppedCount || s.savedCount || 0, continues: s.continuedCount || 0 })).sort((a, b) => (b.pauses + b.continues) - (a.pauses + a.continues)).slice(0, 5)}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                            <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                                            <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                                            <Tooltip
+                                                contentStyle={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                                                itemStyle={{ fontSize: '10px' }}
+                                            />
+                                            <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
+                                            <Bar dataKey="pauses" fill={themeColor} radius={[4, 4, 0, 0]} name="Pauses" />
+                                            <Bar dataKey="continues" fill="rgba(255,255,255,0.1)" radius={[4, 4, 0, 0]} name="Visits" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
                                 </div>
                             </div>
 
