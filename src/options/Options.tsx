@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Shield, Settings, Trash2, Plus, Info, CheckCircle, Quote, Sparkles, Palette, Image as ImageIcon, Sliders, Clock, Download, Upload } from 'lucide-react'
+import { Shield, Settings, Trash2, Plus, Info, CheckCircle, Quote, Sparkles, Palette, Image as ImageIcon, Sliders, Clock, Download, Upload, BarChart3 } from 'lucide-react'
 import './options-zen.css'
 
 interface BlockedSite {
@@ -16,7 +16,7 @@ interface UserQuote {
 }
 
 const Options = () => {
-    const [activeTab, setActiveTab] = useState<'blocking' | 'appearance' | 'quotes'>('blocking')
+    const [activeTab, setActiveTab] = useState<'blocking' | 'appearance' | 'quotes' | 'insights'>('blocking')
     const [blockedSites, setBlockedSites] = useState<BlockedSite[]>([])
     const [newDomain, setNewDomain] = useState('')
     const [newDuration, setNewDuration] = useState(5)
@@ -239,8 +239,16 @@ const Options = () => {
                         onClick={() => setActiveTab('appearance')}
                         style={activeTab === 'appearance' ? { color: themeColor, backgroundColor: `${themeColor}15` } : {}}
                     >
-                        <Settings size={20} />
+                        <Palette size={20} />
                         Appearance
+                    </div>
+                    <div
+                        className={`nav-item ${activeTab === 'insights' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('insights')}
+                        style={activeTab === 'insights' ? { color: themeColor, backgroundColor: `${themeColor}15` } : {}}
+                    >
+                        <BarChart3 size={20} />
+                        Insights & Impact
                     </div>
                 </nav>
 
@@ -498,8 +506,8 @@ const Options = () => {
                             transition={{ duration: 0.3 }}
                         >
                             <header className="content-header">
-                                <h1>Appearance & Mindfulness</h1>
-                                <p>Customize how the intervention page looks and behaves.</p>
+                                <h1>Appearance</h1>
+                                <p>Customize how the intervention page looks and sounds.</p>
                             </header>
 
                             <div className="card-zen" style={{ marginBottom: '2rem' }}>
@@ -551,23 +559,6 @@ const Options = () => {
                                                 onChange={(e) => setSettings(s => ({ ...s, hardModeThreshold: parseInt(e.target.value) || 3 }))}
                                             />
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="card-zen" style={{ marginBottom: '2rem' }}>
-                                <div className="section-header-zen">
-                                    <Clock size={20} style={{ color: themeColor }} />
-                                    <h3>Insights & Impact</h3>
-                                </div>
-                                <div className="stats-dashboard" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
-                                    <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '1.5rem', textAlign: 'center' }}>
-                                        <div style={{ fontSize: '2rem', fontWeight: 600, color: themeColor }}>{Math.floor(stats.totalTimeSaved / 60)}m</div>
-                                        <div className="help-text">Time Reclaimed</div>
-                                    </div>
-                                    <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '1.5rem', textAlign: 'center' }}>
-                                        <div style={{ fontSize: '2rem', fontWeight: 600, color: themeColor }}>{stats.totalCanceled}</div>
-                                        <div className="help-text">Mindful Pauses</div>
                                     </div>
                                 </div>
                             </div>
@@ -714,9 +705,70 @@ const Options = () => {
                             </div>
                         </motion.div>
                     )}
+
+                    {activeTab === 'insights' && (
+                        <motion.div
+                            key="insights"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <header className="content-header">
+                                <h1>Insights & Impact</h1>
+                                <p>Visualize the time you've reclaimed and your mindful progress.</p>
+                            </header>
+
+                            <div className="card-zen" style={{ marginBottom: '2rem' }}>
+                                <div className="section-header-zen">
+                                    <Clock size={20} style={{ color: themeColor }} />
+                                    <h3>Overall Stats</h3>
+                                </div>
+                                <div className="stats-dashboard" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                                    <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '1.5rem', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '2rem', fontWeight: 600, color: themeColor }}>{Math.floor(stats.totalTimeSaved / 60)}m</div>
+                                        <div className="help-text">Time Reclaimed</div>
+                                    </div>
+                                    <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '1.5rem', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '2rem', fontWeight: 600, color: themeColor }}>{stats.totalCanceled}</div>
+                                        <div className="help-text">Mindful Pauses</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="card-zen">
+                                <div className="section-header-zen">
+                                    <Shield size={20} />
+                                    <h3>Site Mastery</h3>
+                                </div>
+                                <p className="help-text" style={{ marginBottom: '1.5rem' }}>See how many times you've paused before visiting specific sites.</p>
+                                <div className="site-list-zen">
+                                    {blockedSites.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                                            No statistics available yet.
+                                        </div>
+                                    ) : (
+                                        blockedSites
+                                            .sort((a, b) => (b.savedCount || 0) - (a.savedCount || 0))
+                                            .map(site => (
+                                                <div key={site.id} className="site-item-zen" style={{ border: 'none', background: 'rgba(255,255,255,0.02)', margin: '0.5rem 0' }}>
+                                                    <div className="domain-info">
+                                                        <div className="domain-dot" style={{ backgroundColor: themeColor }}></div>
+                                                        <span className="domain-name">{site.domain}</span>
+                                                    </div>
+                                                    <div style={{ fontWeight: 600, color: themeColor }}>
+                                                        {site.savedCount || 0} mindful pauses
+                                                    </div>
+                                                </div>
+                                            ))
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
                 </AnimatePresence>
-            </main>
-        </div>
+            </main >
+        </div >
     )
 }
 

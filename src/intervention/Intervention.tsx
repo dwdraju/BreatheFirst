@@ -344,16 +344,30 @@ const Intervention = () => {
                                 onChange={(e) => setIntent(e.target.value)}
                                 autoFocus
                             />
-                            <motion.button
-                                className="btn-zen"
-                                style={{ marginTop: '2rem', width: '100%' }}
-                                onClick={startBreath}
-                                disabled={!intent.trim()}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                            >
-                                Start Breath
-                            </motion.button>
+                            <div className="button-group" style={{ marginTop: '1.5rem', width: '100%', gap: '1rem' }}>
+                                <motion.button
+                                    className="btn-zen"
+                                    style={{ flex: 2 }}
+                                    onClick={startBreath}
+                                    disabled={!intent.trim()}
+                                    whileHover={intent.trim() ? { scale: 1.02 } : {}}
+                                    whileTap={intent.trim() ? { scale: 0.98 } : {}}
+                                >
+                                    Set Intent
+                                </motion.button>
+                                <motion.button
+                                    className="btn-zen-secondary"
+                                    style={{ flex: 1 }}
+                                    onClick={() => {
+                                        setIntent("Just breathing");
+                                        setIsIntentPhase(false);
+                                    }}
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                >
+                                    Skip
+                                </motion.button>
+                            </div>
                         </div>
                     ) : (
                         <>
