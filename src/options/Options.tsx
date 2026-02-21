@@ -36,11 +36,23 @@ const Options = () => {
     const [apiQuotesEnabled, setApiQuotesEnabled] = useState(false)
     const [zenTopic, setZenTopic] = useState('Peace')
 
+    // Advanced Mindfulness State
+    const [settings, setSettings] = useState({
+        intentEnabled: true,
+        scalingEnabled: true,
+        hardModeThreshold: 3
+    })
+    const [stats, setStats] = useState({
+        totalTimeSaved: 0,
+        totalCanceled: 0
+    })
+
     useEffect(() => {
         chrome.storage.sync.get([
             'blockedSites', 'customText', 'quotesEnabled',
             'manualQuotes', 'apiQuotesEnabled',
-            'themeColor', 'bgMode', 'bgImage', 'blurIntensity'
+            'themeColor', 'bgMode', 'bgImage', 'blurIntensity',
+            'settings', 'stats'
         ], (data) => {
             const storageData = data as {
                 blockedSites?: BlockedSite[];
@@ -65,6 +77,10 @@ const Options = () => {
             if (storageData.bgMode) setBgMode(storageData.bgMode)
             if (storageData.bgImage) setBgImage(storageData.bgImage)
             if (storageData.blurIntensity !== undefined) setBlurIntensity(storageData.blurIntensity)
+
+            const rawData = data as any
+            if (rawData.settings) setSettings(rawData.settings)
+            if (rawData.stats) setStats(rawData.stats)
         })
     }, [])
 
@@ -148,7 +164,8 @@ const Options = () => {
             themeColor,
             bgMode,
             bgImage,
-            blurIntensity
+            blurIntensity,
+            settings
         })
         setShowSaved(true)
         setTimeout(() => setShowSaved(false), 3000)
@@ -481,9 +498,79 @@ const Options = () => {
                             transition={{ duration: 0.3 }}
                         >
                             <header className="content-header">
-                                <h1>Appearance</h1>
-                                <p>Customize how the intervention page looks and speaks to you.</p>
+                                <h1>Appearance & Mindfulness</h1>
+                                <p>Customize how the intervention page looks and behaves.</p>
                             </header>
+
+                            <div className="card-zen" style={{ marginBottom: '2rem' }}>
+                                <div className="section-header-zen">
+                                    <Sparkles size={20} style={{ color: themeColor }} />
+                                    <h3>Mindfulness Suite</h3>
+                                </div>
+                                <p className="help-text" style={{ marginBottom: '2rem' }}>Enable interactive features to deepen your focus.</p>
+
+                                <div style={{ display: 'grid', gap: '1.5rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ fontWeight: 600 }}>Intent Prompt</div>
+                                            <div className="help-text">Ask for your visit intention before the breath.</div>
+                                        </div>
+                                        <div
+                                            className={`switch-zen ${settings.intentEnabled ? 'active' : ''}`}
+                                            onClick={() => setSettings(s => ({ ...s, intentEnabled: !s.intentEnabled }))}
+                                            style={settings.intentEnabled ? { backgroundColor: themeColor } : {}}
+                                        >
+                                            <motion.div className="switch-thumb-zen" animate={{ x: settings.intentEnabled ? 24 : 0 }} />
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ fontWeight: 600 }}>Deep Breath Lock (Scaling)</div>
+                                            <div className="help-text">Automatically increase wait time for frequent visits.</div>
+                                        </div>
+                                        <div
+                                            className={`switch-zen ${settings.scalingEnabled ? 'active' : ''}`}
+                                            onClick={() => setSettings(s => ({ ...s, scalingEnabled: !s.scalingEnabled }))}
+                                            style={settings.scalingEnabled ? { backgroundColor: themeColor } : {}}
+                                        >
+                                            <motion.div className="switch-thumb-zen" animate={{ x: settings.scalingEnabled ? 24 : 0 }} />
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ fontWeight: 600 }}>Hard Mode Threshold</div>
+                                            <div className="help-text">Visits per hour before requiring an affirmation.</div>
+                                        </div>
+                                        <div className="duration-stepper">
+                                            <input
+                                                type="number"
+                                                className="stepper-input"
+                                                value={settings.hardModeThreshold}
+                                                onChange={(e) => setSettings(s => ({ ...s, hardModeThreshold: parseInt(e.target.value) || 3 }))}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="card-zen" style={{ marginBottom: '2rem' }}>
+                                <div className="section-header-zen">
+                                    <Clock size={20} style={{ color: themeColor }} />
+                                    <h3>Insights & Impact</h3>
+                                </div>
+                                <div className="stats-dashboard" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                                    <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '1.5rem', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '2rem', fontWeight: 600, color: themeColor }}>{Math.floor(stats.totalTimeSaved / 60)}m</div>
+                                        <div className="help-text">Time Reclaimed</div>
+                                    </div>
+                                    <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '1.5rem', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '2rem', fontWeight: 600, color: themeColor }}>{stats.totalCanceled}</div>
+                                        <div className="help-text">Mindful Pauses</div>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div className="card-zen">
                                 <div className="section-header-zen">

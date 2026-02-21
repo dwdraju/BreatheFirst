@@ -44,6 +44,15 @@ const Intervention = () => {
     const [bgImage, setBgImage] = useState('')
     const [blurIntensity, setBlurIntensity] = useState(10)
 
+    // Advanced Features State
+    const [isIntentPhase, setIsIntentPhase] = useState(false)
+    const [intent, setIntent] = useState('')
+    const [hardMode, setHardMode] = useState(false)
+    const [affirmation, setAffirmation] = useState('')
+    const [visitCount, setVisitCount] = useState(0)
+    const [totalTimeSaved, setTotalTimeSaved] = useState(0)
+    const [isDurationScaled, setIsDurationScaled] = useState(false)
+
     const searchParams = new URLSearchParams(window.location.search)
     // Preference: hash fragment (full URL from regex redirect), then query param (legacy fallback)
     const targetUrl = window.location.hash
@@ -137,13 +146,45 @@ const Intervention = () => {
 
                     setQuote(selectedQuote)
                 }
+
+                // 4. Initial Visit Sync (Advanced Features)
+                chrome.runtime.sendMessage({ type: 'RECORD_VISIT', domain }, (response: {
+                    duration: number,
+                    hardMode: boolean,
+                    visitCount: number,
+                    intentEnabled: boolean
+                }) => {
+                    if (response) {
+                        if (response.duration > (storageData.blockedSites?.find(s => domain.includes(s.domain))?.duration || 5)) {
+                            setIsDurationScaled(true)
+                        }
+                        setDuration(response.duration)
+                        setTimeLeft(response.duration)
+                        setHardMode(response.hardMode)
+                        setVisitCount(response.visitCount)
+                        if (response.intentEnabled) setIsIntentPhase(true)
+                    }
+                })
+
+                // 5. Get Global Stats
+                chrome.storage.sync.get(['stats'], (data) => {
+                    const statsData = data.stats as { totalTimeSaved: number } | undefined;
+                    if (statsData) setTotalTimeSaved(statsData.totalTimeSaved);
+                })
             })
         }
 
         loadSettings()
     }, [domain])
 
+    // Wait for intent if enabled
+    const startBreath = () => {
+        if (isIntentPhase && !intent.trim()) return
+        setIsIntentPhase(false)
+    }
+
     useEffect(() => {
+        if (isIntentPhase) return // Don't start timer until intent is set
         if (timeLeft <= 0) {
             setIsReady(true)
             return
@@ -157,27 +198,34 @@ const Intervention = () => {
     }, [timeLeft])
 
     const handleContinue = () => {
-        // Increment saved count for the domain
-        chrome.storage.sync.get(['blockedSites'], (data) => {
-            const blockedSites = (data.blockedSites || []) as BlockedSite[]
-            const siteIndex = blockedSites.findIndex(s => s.domain === domain)
-
-            if (siteIndex !== -1) {
-                blockedSites[siteIndex].savedCount = (blockedSites[siteIndex].savedCount || 0) + 1
-                chrome.storage.sync.set({ blockedSites })
-            }
+        // Update stats in background
+        chrome.runtime.sendMessage({
+            type: 'UPDATE_STATS',
+            type_action: 'continue',
+            duration
         })
 
         chrome.runtime.sendMessage({
             type: 'BYPASS_SITE',
             domain: domain,
-            duration: 10 * 60 * 1000 // 10 minutes
+            duration: 15 * 60 * 1000 // 15 minutes
         }, () => {
             window.location.href = targetUrl
         })
     }
 
-    const handleCancel = () => window.close()
+    const handleCancel = () => {
+        // Update stats in background
+        chrome.runtime.sendMessage({
+            type: 'UPDATE_STATS',
+            type_action: 'cancel',
+            duration
+        })
+        window.close()
+    }
+
+    const isAffirmationCorrect = !hardMode || affirmation.trim().toLowerCase() === "i am in control of my time"
+    const canContinue = isReady && isAffirmationCorrect
 
     // Timer ring constants
     const radius = 100;
@@ -200,6 +248,12 @@ const Intervention = () => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
             >
+                <div className="live-stats">
+                    <motion.div animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 3, repeat: Infinity }}>
+                        {Math.floor(totalTimeSaved / 60)}m reclaimed this week
+                    </motion.div>
+                </div>
+
                 <div className="orb-container">
                     <motion.div
                         className="breathing-orb"
@@ -207,7 +261,7 @@ const Intervention = () => {
                             background: `radial-gradient(circle at 30% 30%, #fff, ${themeColor})`,
                             boxShadow: `0 0 60px 20px ${themeColor}66, 0 0 120px 40px ${themeColor}33`
                         }}
-                        animate={{
+                        animate={isIntentPhase ? { scale: 0.8, opacity: 0.3 } : {
                             scale: [1, 1.8, 1],
                             opacity: [0.6, 1, 0.6],
                         }}
@@ -219,29 +273,31 @@ const Intervention = () => {
                     />
                     <div className="orb-glow" style={{ background: `radial-gradient(circle, ${themeColor}4d 0%, transparent 70%)` }}></div>
 
-                    <div className="timer-circle-container">
-                        <svg className="progress-ring" width="220" height="220">
-                            <circle
-                                className="progress-ring-circle-bg"
-                                strokeWidth="2"
-                                fill="transparent"
-                                r={radius}
-                                cx="110"
-                                cy="110"
-                            />
-                            <motion.circle
-                                className="progress-ring-circle"
-                                strokeWidth="2"
-                                strokeDasharray={`${circumference} ${circumference}`}
-                                animate={{ strokeDashoffset: offset }}
-                                stroke={themeColor}
-                                fill="transparent"
-                                r={radius}
-                                cx="110"
-                                cy="110"
-                            />
-                        </svg>
-                    </div>
+                    {!isIntentPhase && (
+                        <div className="timer-circle-container">
+                            <svg className="progress-ring" width="220" height="220">
+                                <circle
+                                    className="progress-ring-circle-bg"
+                                    strokeWidth="2"
+                                    fill="transparent"
+                                    r={radius}
+                                    cx="110"
+                                    cy="110"
+                                />
+                                <motion.circle
+                                    className="progress-ring-circle"
+                                    strokeWidth="2"
+                                    strokeDasharray={`${circumference} ${circumference}`}
+                                    animate={{ strokeDashoffset: offset }}
+                                    stroke={themeColor}
+                                    fill="transparent"
+                                    r={radius}
+                                    cx="110"
+                                    cy="110"
+                                />
+                            </svg>
+                        </div>
+                    )}
                 </div>
 
                 <motion.h1
@@ -249,8 +305,18 @@ const Intervention = () => {
                     animate={{ opacity: 1, filter: "blur(0px)" }}
                     transition={{ delay: 0.5, duration: 1 }}
                 >
-                    {customText}
+                    {isIntentPhase ? "What is your intention?" : customText}
                 </motion.h1>
+
+                {isDurationScaled && !isIntentPhase && (
+                    <motion.div
+                        className="scaling-notice"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                    >
+                        Deep Breath Lock active: {visitCount} visits this hour.
+                    </motion.div>
+                )}
 
                 <AnimatePresence mode="wait">
                     {quote && (
@@ -268,18 +334,62 @@ const Intervention = () => {
                 </AnimatePresence>
 
                 <div className="button-group">
-                    <motion.button
-                        className="btn-zen"
-                        disabled={!isReady}
-                        onClick={handleContinue}
-                        whileHover={isReady ? { scale: 1.05 } : {}}
-                        whileTap={isReady ? { scale: 0.95 } : {}}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: isReady ? 1 : 0.3, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                    >
-                        {isReady ? `Continue to ${domain}` : `Focusing... ${timeLeft}s`}
-                    </motion.button>
+                    {isIntentPhase ? (
+                        <div className="intent-container">
+                            <input
+                                className="zen-input-field"
+                                type="text"
+                                placeholder="I need to check..."
+                                value={intent}
+                                onChange={(e) => setIntent(e.target.value)}
+                                autoFocus
+                            />
+                            <motion.button
+                                className="btn-zen"
+                                style={{ marginTop: '2rem', width: '100%' }}
+                                onClick={startBreath}
+                                disabled={!intent.trim()}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                            >
+                                Start Breath
+                            </motion.button>
+                        </div>
+                    ) : (
+                        <>
+                            {hardMode && isReady && (
+                                <motion.div
+                                    className="affirmation-box"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                >
+                                    <label className="affirmation-label">Type to confirm control:</label>
+                                    <input
+                                        className="zen-input-field"
+                                        style={{ marginBottom: '1.5rem', fontSize: '0.875rem' }}
+                                        type="text"
+                                        placeholder="I am in control of my time"
+                                        value={affirmation}
+                                        onChange={(e) => setAffirmation(e.target.value)}
+                                    />
+                                </motion.div>
+                            )}
+                            <motion.button
+                                className="btn-zen"
+                                disabled={!canContinue}
+                                onClick={handleContinue}
+                                whileHover={canContinue ? { scale: 1.05 } : {}}
+                                whileTap={canContinue ? { scale: 0.95 } : {}}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: canContinue ? 1 : (isReady ? 0.3 : 0.2), y: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                {isReady
+                                    ? (hardMode && !isAffirmationCorrect ? "Affirmation required" : `Continue to ${domain}`)
+                                    : `Focusing... ${timeLeft}s`}
+                            </motion.button>
+                        </>
+                    )}
 
                     <motion.button
                         className="cancel-zen"

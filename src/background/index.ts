@@ -8,6 +8,23 @@ const bypassTimeouts = new Map<number, ReturnType<typeof setTimeout>>();
 interface BlockedSite {
     domain: string;
     id: number;
+    duration: number;
+}
+
+interface VisitRecord {
+    timestamp: number;
+    type: 'continue' | 'cancel';
+}
+
+interface AppStats {
+    totalTimeSaved: number;
+    totalCanceled: number;
+}
+
+interface AppSettings {
+    intentEnabled: boolean;
+    scalingEnabled: boolean;
+    hardModeThreshold: number;
 }
 
 // Helper to update DNR rules based on storage
@@ -79,8 +96,74 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.type === 'TOGGLE_EXTENSION') {
         updateBlockingRules();
         sendResponse({ success: true });
+    } else if (message.type === 'RECORD_VISIT') {
+        handleRecordVisit(message.domain).then(sendResponse);
+        return true;
+    } else if (message.type === 'UPDATE_STATS') {
+        handleUpdateStats(message.type_action, message.duration).then(sendResponse);
+        return true;
     }
 });
+
+async function handleRecordVisit(domain: string) {
+    const data = await chrome.storage.sync.get(['visitHistory', 'settings', 'blockedSites']) as {
+        visitHistory?: Record<string, VisitRecord[]>;
+        settings?: AppSettings;
+        blockedSites?: BlockedSite[];
+    };
+
+    const history = data.visitHistory || {};
+    const settings = data.settings || { intentEnabled: true, scalingEnabled: true, hardModeThreshold: 3 };
+    const site = data.blockedSites?.find(s => s.domain === domain);
+
+    if (!site) return { duration: 5, hardMode: false, visitCount: 0 };
+
+    const now = Date.now();
+    const oneHourAgo = now - 3600000;
+
+    // Clean up old history and filter for this domain in last hour
+    const domainHistory = (history[domain] || []).filter(v => v.timestamp > oneHourAgo);
+    const visitCountInLastHour = domainHistory.length;
+
+    let duration = site.duration;
+    let hardMode = false;
+
+    if (settings.scalingEnabled && visitCountInLastHour >= 3) {
+        // Scale duration: +5s for every 2 visits over threshold
+        const extraScale = Math.floor((visitCountInLastHour - 2) / 2) * 5;
+        duration += Math.min(extraScale, 30); // Cap at +30s
+    }
+
+    if (visitCountInLastHour >= settings.hardModeThreshold) {
+        hardMode = true;
+    }
+
+    // record the load timestamp (we'll update type later on continue/cancel)
+    const newRecord: VisitRecord = { timestamp: now, type: 'cancel' }; // Default to cancel until proven otherwise
+    history[domain] = [...domainHistory, newRecord];
+
+    await chrome.storage.sync.set({ visitHistory: history });
+
+    return {
+        duration,
+        hardMode,
+        visitCount: visitCountInLastHour + 1,
+        intentEnabled: settings.intentEnabled
+    };
+}
+
+async function handleUpdateStats(action: 'continue' | 'cancel', duration: number) {
+    const data = await chrome.storage.sync.get(['stats']) as { stats?: AppStats };
+    const stats = data.stats || { totalTimeSaved: 0, totalCanceled: 0 };
+
+    if (action === 'cancel') {
+        stats.totalTimeSaved += duration;
+        stats.totalCanceled += 1;
+    }
+
+    await chrome.storage.sync.set({ stats });
+    return { success: true, stats };
+}
 
 async function handleBypass(domain: string, duration: number, tabId?: number) {
     if (!tabId) {
@@ -160,7 +243,16 @@ chrome.runtime.onInstalled.addListener(async () => {
                     { text: "The present moment is the only time over which we have dominion.", id: 1001 },
                     { text: "Breathe in, and you know you are alive. Breathe out, and you know you are making a difference.", id: 1002 },
                     { text: "The soul usually knows what to do to heal itself. The challenge is to silence the mind.", id: 1003 }
-                ]
+                ],
+                settings: {
+                    intentEnabled: true,
+                    scalingEnabled: true,
+                    hardModeThreshold: 3
+                },
+                stats: {
+                    totalTimeSaved: 0,
+                    totalCanceled: 0
+                }
             });
         }
     });
