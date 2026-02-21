@@ -57,7 +57,7 @@ const Popup = () => {
                 </div>
                 <a
                     className="nav-link-zen"
-                    href="https://github.com/alpha/antigravity/breathefirst"
+                    href="https://github.com/dwdraju/BreatheFirst"
                     target="_blank"
                     rel="noreferrer"
                 >

@@ -29,6 +29,36 @@ interface DailyRecord {
     continues: number;
 }
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="card-zen" style={{
+                padding: '12px',
+                background: 'rgba(20, 20, 20, 0.95)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                backdropFilter: 'blur(12px)',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+                borderRadius: '12px',
+                minWidth: '140px'
+            }}>
+                <p style={{ margin: '0 0 10px 0', fontSize: '0.7rem', fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {label || (payload[0].payload && payload[0].payload.name) || 'Summary'}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {payload.map((entry: any, index: number) => (
+                        <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: entry.color || entry.fill }}></div>
+                            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>{entry.name}</span>
+                            <span style={{ fontSize: '0.8rem', color: '#fff', fontWeight: 700, marginLeft: 'auto' }}>{entry.value}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
+
 const Options = () => {
     const [activeTab, setActiveTab] = useState<'blocking' | 'appearance' | 'quotes' | 'insights' | 'mindfulness'>('blocking')
     const [blockedSites, setBlockedSites] = useState<BlockedSite[]>([])
@@ -827,14 +857,14 @@ const Options = () => {
                                     </div>
                                     <div style={{ height: 200, width: '100%', marginTop: '1rem' }}>
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart data={Object.entries(dailyStats).map(([date, data]) => ({ date: date.split('-').slice(1).join('/'), ...data })).sort((a, b) => a.date.localeCompare(b.date))}>
+                                            <LineChart
+                                                data={Object.entries(dailyStats).map(([date, data]) => ({ date: date.split('-').slice(1).join('/'), ...data })).sort((a, b) => a.date.localeCompare(b.date))}
+                                                margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+                                            >
                                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                                <XAxis dataKey="date" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
-                                                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
-                                                <Tooltip
-                                                    contentStyle={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                                                    itemStyle={{ fontSize: '10px' }}
-                                                />
+                                                <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.5)' }} />
+                                                <YAxis stroke="rgba(255,255,255,0.5)" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.5)' }} />
+                                                <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }} />
                                                 <Line type="monotone" dataKey="pauses" stroke={themeColor} strokeWidth={2} dot={{ fill: themeColor, r: 2 }} activeDot={{ r: 4 }} name="Pauses" />
                                                 <Line type="monotone" dataKey="attempts" stroke="rgba(255,255,255,0.2)" strokeWidth={1} dot={false} name="Attempts" />
                                             </LineChart>
@@ -866,10 +896,7 @@ const Options = () => {
                                                     <Cell fill={themeColor} />
                                                     <Cell fill="rgba(255,255,255,0.1)" />
                                                 </Pie>
-                                                <Tooltip
-                                                    contentStyle={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                                                    itemStyle={{ fontSize: '10px' }}
-                                                />
+                                                <Tooltip content={<CustomTooltip />} />
                                             </PieChart>
                                         </ResponsiveContainer>
                                     </div>
@@ -884,14 +911,14 @@ const Options = () => {
                                 </div>
                                 <div style={{ height: 220, width: '100%', marginTop: '1rem' }}>
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={blockedSites.map(s => ({ name: s.domain, pauses: s.droppedCount || s.savedCount || 0, continues: s.continuedCount || 0 })).sort((a, b) => (b.pauses + b.continues) - (a.pauses + a.continues)).slice(0, 5)}>
+                                        <BarChart
+                                            data={blockedSites.map(s => ({ name: s.domain, pauses: s.droppedCount || s.savedCount || 0, continues: s.continuedCount || 0 })).sort((a, b) => (b.pauses + b.continues) - (a.pauses + a.continues)).slice(0, 5)}
+                                            margin={{ top: 5, right: 30, left: 0, bottom: 20 }}
+                                        >
                                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                            <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
-                                            <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
-                                            <Tooltip
-                                                contentStyle={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                                                itemStyle={{ fontSize: '10px' }}
-                                            />
+                                            <XAxis dataKey="name" stroke="rgba(255,255,255,0.5)" fontSize={10} tickLine={false} axisLine={false} interval={0} tick={{ fill: 'rgba(255,255,255,0.5)' }} />
+                                            <YAxis stroke="rgba(255,255,255,0.5)" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.5)' }} />
+                                            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                                             <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
                                             <Bar dataKey="pauses" fill={themeColor} radius={[4, 4, 0, 0]} name="Pauses" />
                                             <Bar dataKey="continues" fill="rgba(255,255,255,0.1)" radius={[4, 4, 0, 0]} name="Visits" />
