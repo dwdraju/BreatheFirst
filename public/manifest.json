@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "BreatheFirst",
+  "version": "1.0.0",
+  "description": "A mindful intervention for distracting websites.",
+  "permissions": [
+    "declarativeNetRequest",
+    "storage",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "declarative_net_request": {
+    "rule_resources": []
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "intervention.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

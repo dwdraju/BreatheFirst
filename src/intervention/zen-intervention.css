@@ -1,0 +1,197 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;600&display=swap');
+
+:root {
+    --bg-color: #030712;
+    --text-color: #f8fafc;
+    --accent-color: #2dd4bf;
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.08);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+.zen-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background-size: cover;
+    background-position: center;
+}
+
+.zen-background.gradient {
+    background: radial-gradient(circle at 0% 0%, #0c4a6e 0%, transparent 50%),
+        radial-gradient(circle at 100% 0%, #064e3b 0%, transparent 50%),
+        radial-gradient(circle at 100% 100%, #1e1b4b 0%, transparent 50%),
+        radial-gradient(circle at 0% 100%, #312e81 0%, transparent 50%),
+        #030712;
+    filter: blur(100px);
+    animation: mesh-move 20s ease-in-out infinite alternate;
+}
+
+@keyframes mesh-move {
+    0% {
+        transform: scale(1);
+    }
+
+    100% {
+        transform: scale(1.1) rotate(5deg);
+    }
+}
+
+.intervention-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    padding: 2rem;
+}
+
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid var(--glass-border);
+    border-radius: 3rem;
+    padding: 4rem;
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
+    box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.6),
+        inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.orb-container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.breathing-orb {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    position: relative;
+    z-index: 2;
+}
+
+.orb-glow {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    filter: blur(20px);
+    z-index: 1;
+}
+
+h1 {
+    font-size: 3.5rem;
+    font-weight: 200;
+    margin-bottom: 2rem;
+    letter-spacing: -0.05em;
+    background: linear-gradient(to bottom, #fff, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.zen-quote {
+    font-size: 1.25rem;
+    font-weight: 300;
+    color: #94a3b8;
+    margin-bottom: 4rem;
+    line-height: 1.6;
+}
+
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.btn-zen {
+    background: rgba(255, 255, 255, 0.9);
+    color: #030712;
+    border: none;
+    padding: 1.25rem 3.5rem;
+    border-radius: 9999px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.btn-zen:hover:not(:disabled) {
+    transform: scale(1.05) translateY(-2px);
+    background: #fff;
+    box-shadow: 0 20px 30px -10px rgba(255, 255, 255, 0.3);
+}
+
+.btn-zen:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.cancel-zen {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.cancel-zen:hover {
+    color: var(--text-color);
+}
+
+.timer-circle-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 220px;
+    height: 220px;
+    pointer-events: none;
+}
+
+.progress-ring {
+    transform: rotate(-90deg);
+}
+
+.progress-ring-circle {
+    transition: stroke-dashoffset 0.3s linear;
+}
+
+.progress-ring-circle-bg {
+    stroke: rgba(255, 255, 255, 0.05);
+}
