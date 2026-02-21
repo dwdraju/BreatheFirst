@@ -9,6 +9,11 @@ interface BlockedSite {
     domain: string;
     id: number;
     duration: number;
+    visitCount?: number;
+    droppedCount?: number;
+    continuedCount?: number;
+    intentCount?: number;
+    savedCount?: number; // Legacy, keep for compatibility
 }
 
 interface VisitRecord {
@@ -100,7 +105,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         handleRecordVisit(message.domain).then(sendResponse);
         return true;
     } else if (message.type === 'UPDATE_STATS') {
-        handleUpdateStats(message.type_action, message.duration).then(sendResponse);
+        handleUpdateStats(message.type_action, message.duration, message.domain).then(sendResponse);
+        return true;
+    } else if (message.type === 'RECORD_INTENT') {
+        handleRecordIntent(message.domain).then(sendResponse);
         return true;
     }
 });
@@ -138,6 +146,15 @@ async function handleRecordVisit(domain: string) {
         hardMode = true;
     }
 
+    // Increment visitCount for this site
+    const updatedSites = (data.blockedSites || []).map(s => {
+        if (s.domain === domain) {
+            return { ...s, visitCount: (s.visitCount || 0) + 1 };
+        }
+        return s;
+    });
+    await chrome.storage.sync.set({ blockedSites: updatedSites });
+
     // record the load timestamp (we'll update type later on continue/cancel)
     const newRecord: VisitRecord = { timestamp: now, type: 'cancel' }; // Default to cancel until proven otherwise
     history[domain] = [...domainHistory, newRecord];
@@ -152,17 +169,47 @@ async function handleRecordVisit(domain: string) {
     };
 }
 
-async function handleUpdateStats(action: 'continue' | 'cancel', duration: number) {
-    const data = await chrome.storage.sync.get(['stats']) as { stats?: AppStats };
+async function handleUpdateStats(action: 'continue' | 'cancel', duration: number, domain?: string) {
+    const data = await chrome.storage.sync.get(['stats', 'blockedSites']) as { stats?: AppStats, blockedSites?: BlockedSite[] };
     const stats = data.stats || { totalTimeSaved: 0, totalCanceled: 0 };
 
     if (action === 'cancel') {
         stats.totalTimeSaved += duration;
         stats.totalCanceled += 1;
+
+        if (domain) {
+            const updatedSites = (data.blockedSites || []).map(s => {
+                if (s.domain === domain) {
+                    return { ...s, droppedCount: (s.droppedCount || 0) + 1, savedCount: (s.savedCount || 0) + 1 };
+                }
+                return s;
+            });
+            await chrome.storage.sync.set({ blockedSites: updatedSites });
+        }
+    } else if (action === 'continue' && domain) {
+        const updatedSites = (data.blockedSites || []).map(s => {
+            if (s.domain === domain) {
+                return { ...s, continuedCount: (s.continuedCount || 0) + 1 };
+            }
+            return s;
+        });
+        await chrome.storage.sync.set({ blockedSites: updatedSites });
     }
 
     await chrome.storage.sync.set({ stats });
     return { success: true, stats };
+}
+
+async function handleRecordIntent(domain: string) {
+    const data = await chrome.storage.sync.get(['blockedSites']) as { blockedSites?: BlockedSite[] };
+    const updatedSites = (data.blockedSites || []).map(s => {
+        if (s.domain === domain) {
+            return { ...s, intentCount: (s.intentCount || 0) + 1 };
+        }
+        return s;
+    });
+    await chrome.storage.sync.set({ blockedSites: updatedSites });
+    return { success: true };
 }
 
 async function handleBypass(domain: string, duration: number, tabId?: number) {

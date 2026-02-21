@@ -180,6 +180,9 @@ const Intervention = () => {
     // Wait for intent if enabled
     const startBreath = () => {
         if (isIntentPhase && !intent.trim()) return
+        if (isIntentPhase) {
+            chrome.runtime.sendMessage({ type: 'RECORD_INTENT', domain })
+        }
         setIsIntentPhase(false)
     }
 
@@ -202,7 +205,8 @@ const Intervention = () => {
         chrome.runtime.sendMessage({
             type: 'UPDATE_STATS',
             type_action: 'continue',
-            duration
+            duration,
+            domain
         })
 
         chrome.runtime.sendMessage({
@@ -219,7 +223,8 @@ const Intervention = () => {
         chrome.runtime.sendMessage({
             type: 'UPDATE_STATS',
             type_action: 'cancel',
-            duration
+            duration,
+            domain
         })
         window.close()
     }

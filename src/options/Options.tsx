@@ -8,6 +8,10 @@ interface BlockedSite {
     id: number;
     duration: number; // in seconds
     savedCount?: number;
+    visitCount?: number;
+    droppedCount?: number;
+    continuedCount?: number;
+    intentCount?: number;
 }
 
 interface UserQuote {
@@ -16,7 +20,7 @@ interface UserQuote {
 }
 
 const Options = () => {
-    const [activeTab, setActiveTab] = useState<'blocking' | 'appearance' | 'quotes' | 'insights'>('blocking')
+    const [activeTab, setActiveTab] = useState<'blocking' | 'appearance' | 'quotes' | 'insights' | 'mindfulness'>('blocking')
     const [blockedSites, setBlockedSites] = useState<BlockedSite[]>([])
     const [newDomain, setNewDomain] = useState('')
     const [newDuration, setNewDuration] = useState(5)
@@ -241,6 +245,14 @@ const Options = () => {
                     >
                         <Palette size={20} />
                         Appearance
+                    </div>
+                    <div
+                        className={`nav-item ${activeTab === 'mindfulness' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('mindfulness')}
+                        style={activeTab === 'mindfulness' ? { color: themeColor, backgroundColor: `${themeColor}15` } : {}}
+                    >
+                        <Sparkles size={20} />
+                        Mindfulness
                     </div>
                     <div
                         className={`nav-item ${activeTab === 'insights' ? 'active' : ''}`}
@@ -507,61 +519,8 @@ const Options = () => {
                         >
                             <header className="content-header">
                                 <h1>Appearance</h1>
-                                <p>Customize how the intervention page looks and sounds.</p>
+                                <p>Customize the visual atmosphere of your intervention.</p>
                             </header>
-
-                            <div className="card-zen" style={{ marginBottom: '2rem' }}>
-                                <div className="section-header-zen">
-                                    <Sparkles size={20} style={{ color: themeColor }} />
-                                    <h3>Mindfulness Suite</h3>
-                                </div>
-                                <p className="help-text" style={{ marginBottom: '2rem' }}>Enable interactive features to deepen your focus.</p>
-
-                                <div style={{ display: 'grid', gap: '1.5rem' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <div style={{ fontWeight: 600 }}>Intent Prompt</div>
-                                            <div className="help-text">Ask for your visit intention before the breath.</div>
-                                        </div>
-                                        <div
-                                            className={`switch-zen ${settings.intentEnabled ? 'active' : ''}`}
-                                            onClick={() => setSettings(s => ({ ...s, intentEnabled: !s.intentEnabled }))}
-                                            style={settings.intentEnabled ? { backgroundColor: themeColor } : {}}
-                                        >
-                                            <motion.div className="switch-thumb-zen" animate={{ x: settings.intentEnabled ? 24 : 0 }} />
-                                        </div>
-                                    </div>
-
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <div style={{ fontWeight: 600 }}>Deep Breath Lock (Scaling)</div>
-                                            <div className="help-text">Automatically increase wait time for frequent visits.</div>
-                                        </div>
-                                        <div
-                                            className={`switch-zen ${settings.scalingEnabled ? 'active' : ''}`}
-                                            onClick={() => setSettings(s => ({ ...s, scalingEnabled: !s.scalingEnabled }))}
-                                            style={settings.scalingEnabled ? { backgroundColor: themeColor } : {}}
-                                        >
-                                            <motion.div className="switch-thumb-zen" animate={{ x: settings.scalingEnabled ? 24 : 0 }} />
-                                        </div>
-                                    </div>
-
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <div style={{ fontWeight: 600 }}>Hard Mode Threshold</div>
-                                            <div className="help-text">Visits per hour before requiring an affirmation.</div>
-                                        </div>
-                                        <div className="duration-stepper">
-                                            <input
-                                                type="number"
-                                                className="stepper-input"
-                                                value={settings.hardModeThreshold}
-                                                onChange={(e) => setSettings(s => ({ ...s, hardModeThreshold: parseInt(e.target.value) || 3 }))}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
 
                             <div className="card-zen">
                                 <div className="section-header-zen">
@@ -706,6 +665,96 @@ const Options = () => {
                         </motion.div>
                     )}
 
+                    {activeTab === 'mindfulness' && (
+                        <motion.div
+                            key="mindfulness"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <header className="content-header">
+                                <h1>Mindfulness</h1>
+                                <p>Enable interactive features to deepen your focus and avoid mindless browsing.</p>
+                            </header>
+
+                            <div className="card-zen">
+                                <div className="section-header-zen">
+                                    <Sparkles size={20} style={{ color: themeColor }} />
+                                    <h3>Advanced Features</h3>
+                                </div>
+
+                                <div style={{ display: 'grid', gap: '1.5rem', marginTop: '1.5rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ fontWeight: 600 }}>Intent Prompt</div>
+                                            <div className="help-text">Ask for your visit intention before the breath.</div>
+                                        </div>
+                                        <div
+                                            className={`switch-zen ${settings.intentEnabled ? 'active' : ''}`}
+                                            onClick={() => setSettings(s => ({ ...s, intentEnabled: !s.intentEnabled }))}
+                                            style={settings.intentEnabled ? { backgroundColor: themeColor } : {}}
+                                        >
+                                            <motion.div className="switch-thumb-zen" animate={{ x: settings.intentEnabled ? 24 : 0 }} />
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ fontWeight: 600 }}>Deep Breath Lock (Scaling)</div>
+                                            <div className="help-text">Automatically increase wait time for frequent visits.</div>
+                                        </div>
+                                        <div
+                                            className={`switch-zen ${settings.scalingEnabled ? 'active' : ''}`}
+                                            onClick={() => setSettings(s => ({ ...s, scalingEnabled: !s.scalingEnabled }))}
+                                            style={settings.scalingEnabled ? { backgroundColor: themeColor } : {}}
+                                        >
+                                            <motion.div className="switch-thumb-zen" animate={{ x: settings.scalingEnabled ? 24 : 0 }} />
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ fontWeight: 600 }}>Hard Mode Threshold</div>
+                                            <div className="help-text">Visits per hour before requiring an affirmation.</div>
+                                        </div>
+                                        <div className="duration-stepper">
+                                            <input
+                                                type="number"
+                                                className="stepper-input"
+                                                value={settings.hardModeThreshold}
+                                                onChange={(e) => setSettings(s => ({ ...s, hardModeThreshold: parseInt(e.target.value) || 3 }))}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: '3rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <button
+                                        className="btn-primary"
+                                        onClick={handleSaveSettings}
+                                        style={{ backgroundColor: themeColor, boxShadow: `0 4px 14px 0 ${themeColor}66` }}
+                                    >
+                                        Save Changes
+                                    </button>
+                                    <AnimatePresence>
+                                        {showSaved && (
+                                            <motion.div
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                style={{ color: themeColor, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem', fontWeight: 600 }}
+                                            >
+                                                <CheckCircle size={16} />
+                                                Settings saved successfully
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
                     {activeTab === 'insights' && (
                         <motion.div
                             key="insights"
@@ -741,7 +790,7 @@ const Options = () => {
                                     <Shield size={20} />
                                     <h3>Site Mastery</h3>
                                 </div>
-                                <p className="help-text" style={{ marginBottom: '1.5rem' }}>See how many times you've paused before visiting specific sites.</p>
+                                <p className="help-text" style={{ marginBottom: '1.5rem' }}>Detailed breakdown of your interactions with restricted sites.</p>
                                 <div className="site-list-zen">
                                     {blockedSites.length === 0 ? (
                                         <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
@@ -749,15 +798,40 @@ const Options = () => {
                                         </div>
                                     ) : (
                                         blockedSites
-                                            .sort((a, b) => (b.savedCount || 0) - (a.savedCount || 0))
+                                            .sort((a, b) => (b.visitCount || 0) - (a.visitCount || 0))
                                             .map(site => (
-                                                <div key={site.id} className="site-item-zen" style={{ border: 'none', background: 'rgba(255,255,255,0.02)', margin: '0.5rem 0' }}>
-                                                    <div className="domain-info">
-                                                        <div className="domain-dot" style={{ backgroundColor: themeColor }}></div>
-                                                        <span className="domain-name">{site.domain}</span>
+                                                <div key={site.id} className="site-item-zen" style={{ border: 'none', background: 'rgba(255,255,255,0.02)', margin: '0.8rem 0', flexDirection: 'column', alignItems: 'flex-start', padding: '1.5rem' }}>
+                                                    <div className="domain-info" style={{ marginBottom: '1rem', width: '100%', justifyContent: 'space-between' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                            <div className="domain-dot" style={{ backgroundColor: themeColor }}></div>
+                                                            <span className="domain-name" style={{ fontSize: '1.1rem' }}>{site.domain}</span>
+                                                        </div>
+                                                        <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>Total interventions: {site.visitCount || 0}</div>
                                                     </div>
-                                                    <div style={{ fontWeight: 600, color: themeColor }}>
-                                                        {site.savedCount || 0} mindful pauses
+
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.8rem', width: '100%' }}>
+                                                        <div style={{ padding: '0.8rem', background: 'rgba(255,255,255,0.03)', borderRadius: '1rem', textAlign: 'center' }}>
+                                                            <div style={{ fontWeight: 600, color: themeColor, fontSize: '1.2rem' }}>{site.droppedCount || site.savedCount || 0}</div>
+                                                            <div className="help-text" style={{ fontSize: '0.6rem' }}>Mindful Pauses</div>
+                                                        </div>
+                                                        <div style={{ padding: '0.8rem', background: 'rgba(255,255,255,0.03)', borderRadius: '1rem', textAlign: 'center' }}>
+                                                            <div style={{ fontWeight: 600, color: themeColor, fontSize: '1.2rem' }}>{site.continuedCount || 0}</div>
+                                                            <div className="help-text" style={{ fontSize: '0.6rem' }}>Visits Made</div>
+                                                        </div>
+                                                        <div style={{ padding: '0.8rem', background: 'rgba(255,255,255,0.03)', borderRadius: '1rem', textAlign: 'center' }}>
+                                                            <div style={{ fontWeight: 600, color: themeColor, fontSize: '1.2rem' }}>{site.intentCount || 0}</div>
+                                                            <div className="help-text" style={{ fontSize: '0.6rem' }}>Intentions Set</div>
+                                                        </div>
+                                                        <div style={{ padding: '0.8rem', background: 'rgba(255,255,255,0.03)', borderRadius: '1rem', textAlign: 'center' }}>
+                                                            <div style={{ fontWeight: 600, color: themeColor, fontSize: '1.2rem' }}>
+                                                                {(() => {
+                                                                    const dropped = site.droppedCount || site.savedCount || 0;
+                                                                    const finished = dropped + (site.continuedCount || 0);
+                                                                    return finished > 0 ? `${Math.round((dropped / finished) * 100)}%` : '--';
+                                                                })()}
+                                                            </div>
+                                                            <div className="help-text" style={{ fontSize: '0.6rem' }}>Success Rate</div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))
